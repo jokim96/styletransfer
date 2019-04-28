@@ -6,7 +6,9 @@ import sys
 from glob import glob
 from our_model import OurModel
 import hyperparameters as hp
+from skimage.transform import rescale
 import PIL.Image
+from helpers import load_image, save_image, my_imfilter
 
 #to be imported whne tensorflow is implemented  
 # from tensorpack import *
@@ -18,47 +20,26 @@ import PIL.Image
 # from vgg_model import VGGModel
 
 
-def load_data():
-#datadir, task, train_or_test
-    content_filename = 'images/bosphorus.jpg'
-    content_image = load_image(content_filename, max_size=None)
-    content_filename = 'images/starry-night.jpg'
-    style_image = load_image(content_filename, max_size=None)
+def load_data(): 
+    content_image = load_image('images/bosphorus.jpg')
+    content_image = rescale(content_image, 0.7, mode='reflect')   
+    style_image = load_image('images/starry-night.jpg')
+    style_image = np.resize(style_image, (content_image.shape))
     data = [content_image, style_image] 
     return data
-
-def load_image(filename, max_size=None):
-    image = PIL.Image.open(filename)
-
-    if max_size is not None:
-        # Calculate the appropriate rescale-factor for
-        # ensuring a max height and width, while keeping
-        # the proportion between them.
-        factor = max_size / np.max(image.size)
-    
-        # Scale the image's height and width.
-        size = np.array(image.size) * factor
-
-        # The size is now floating-point because it was scaled.
-        # But PIL requires the size to be integers.
-        size = size.astype(int)
-
-        # Resize the image.
-        image = image.resize(size, PIL.Image.LANCZOS)
-
-    # Convert to numpy floating-point array.
-    return np.float32(image)
+ 
+ 
 
 """
 Program argument parsing, data setup, and training
 """
 if __name__ == '__main__':
-    # data = load_data()
+    data = load_data()
     
 
     model = OurModel()
-    model.load_data()
-    model.style_transfer()
+    # model.load_data()
+    model.style_transfer(data)
     # model.style_transfer(data[0], data[1])
 
     # parser = argparse.ArgumentParser()
@@ -95,27 +76,4 @@ if __name__ == '__main__':
 
     # dataset_train = get_data(args.data, args.task, 'train')
     # dataset_test = get_data(args.data, args.task, 'test')
-
-    # # TensorPack: Training configuration
-    # config = TrainConfig(
-    #     model=OurModel() if args.task == '1' else VGGModel(),
-    #     dataflow=dataset_train,
-    #     callbacks=[
-    #         # Callbacks are performed at the end of every epoch.
-    #         #
-    #         # For instance, we can save the current model
-    #         ModelSaver(),
-    #         # Evaluate the current model and print out the loss
-    #         InferenceRunner(dataset_test,
-    #                         [ScalarStats('cost'), ClassificationError()])
-    #         #
-    #         # You can put other callbacks here to change hyperparameters,
-    #         # etc...
-    #         #
-    #     ],
-    #     max_epoch=hp.num_epochs,
-    #     nr_tower=max(get_nr_gpu(), 1),
-    #     session_init=None if args.task == '1' else get_model_loader(args.load)
-    # )
-    # # TensorPack: Training with simple one at a time feed into batches
-    # launch_train_with_config(config, SimpleTrainer())
+ 

@@ -33,34 +33,35 @@ class OurModel():
             
     print("created model") 
 
-    def load_data(self):
-    #datadir, task, train_or_test
-        filename = 'images/bosphorus.jpg'
-        content_image = load_image('images/bosphorus.jpg')
-        content_image = rescale(content_image, 0.7, mode='reflect')  
-        filename = 'images/starry-night.jpg'
-        style_image = load_image('images/starry-night.jpg')
-        # style_image = cv2.resize(style_image, test_image.shape, interpolation = cv2.INTER_AREA)
-        self.orgstyle_image = style_image
-        style_image = np.resize(style_image, (content_image.shape))
-        # style_image = np.float32(style_image)
-        self.content_image = content_image
-        self.style_image = style_image
-        # self.data = [content_image, style_image] 
+    # def load_data(self):
+    # #datadir, task, train_or_test
+    #     filename = 'images/bosphorus.jpg'
+    #     content_image = load_image('images/bosphorus.jpg')
+    #     content_image = rescale(content_image, 0.7, mode='reflect')  
+    #     filename = 'images/starry-night.jpg'
+    #     style_image = load_image('images/starry-night.jpg')
+    #     # style_image = cv2.resize(style_image, test_image.shape, interpolation = cv2.INTER_AREA)
+    #     self.orgstyle_image = style_image
+    #     style_image = np.resize(style_image, (content_image.shape))
+    #     # style_image = np.float32(style_image)
+    #     self.content_image = content_image
+    #     self.style_image = style_image
+    #     # self.data = [content_image, style_image] 
 
 
-    def style_transfer(self):
+    def style_transfer(self, data):
         #insert algorithm here
-        mixed_image = 0.5 * self.content_image + 0.5 * self.style_image
-
+        self.data = data
+        self.content_image = data[0]
+        self.orgstyle_image = data[0]
+        self.style_image = data[1]
+        self.mixed_image = 0.4 * self.content_image + 0.6 * self.style_image
+        print("data is received.")
         # mixed_image = np.divide(self.content_image+self.style_image,2)
         plt.figure()
         plt.imshow(self.orgstyle_image)
         plt.show()
         plt.imshow(self.content_image)
         plt.show()
-        plt.imshow(mixed_image)
+        plt.imshow(self.mixed_image)
         plt.show()
-
- 
- 
