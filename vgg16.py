@@ -17,7 +17,7 @@ class Vgg16:
             vgg16_npy_path = path
             print(path)
 
-        self.data_dict = np.load(vgg16_npy_path, encoding='latin1').item()
+        self.data_dict = np.load(vgg16_npy_path,  allow_pickle=True, encoding='latin1').item()
         print("npy file loaded")
 
     def build(self, rgb):
@@ -32,6 +32,9 @@ class Vgg16:
         rgb_scaled = rgb * 255.0
 
         # Convert RGB to BGR
+        print(rgb.shape)
+        print(rgb_scaled.shape)
+        print("YEET")
         red, green, blue = tf.split(axis=3, num_or_size_splits=3, value=rgb_scaled)
         assert red.get_shape().as_list()[1:] == [224, 224, 1]
         assert green.get_shape().as_list()[1:] == [224, 224, 1]

@@ -21,7 +21,7 @@ from helpers import load_image, save_image, my_imfilter
 
 
 def load_data(): 
-    content_image = load_image('images/bosphorus.jpg')
+    content_image = load_image('images/galata.jpg')
     content_image = rescale(content_image, 0.7, mode='reflect')   
     style_image = load_image('images/starry-night.jpg')
     style_image = np.resize(style_image, (content_image.shape))

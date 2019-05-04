@@ -86,10 +86,22 @@ class OurModel():
         content_image = data[0]
         orgstyle_image = data[0]
         style_image = data[1]
+        weight_content=1.5
+        weight_style=10.0
+        weight_denoise=0.3
+        num_iterations=120
+        step_size=10.0
+
+
 
         content_layer_ids = [4]
         vgg = Vgg16()
+        (h,w,d) = content_image.shape
+        content_image = np.reshape(content_image, (int(h/30),int(w/30),3))
+
+        #which one?
         model = vgg.build(content_image)
+        # model = vgg16.VGG16()
 
         #parameters
         weight_content=1.5
@@ -118,8 +130,7 @@ class OurModel():
 
         gradient = tf.gradients(loss_combined, model.input)
 
-        run_list = [gradient, update_adj_content, update_adj_style, \
-                    update_adj_denoise]
+        run_list = [gradient, update_adj_content, update_adj_style, update_adj_denoise]
 
         # The mixed-image is initialized with random noise.
         # It is the same size as the content-image.
@@ -173,45 +184,34 @@ class OurModel():
         return mixed_image
 
 
-        # print("data is received.")
-        # # mixed_image = np.divide(self.content_image+self.style_image,2)
-        # plt.figure()
-        # plt.imshow(self.orgstyle_image)
-        # plt.show()
-        # plt.imshow(self.content_image)
-        # plt.show()
-        # plt.imshow(self.mixed_image)
-        # plt.show()
-
-
     # Loss function calculated through mean squared error between the
     # content/style image and output image
     def mean_sqerr(self, tensor_a, tensor_b):
         return tf.reduce_mean(tf.square(tensor_a-tensor_b))
 
     # use mean_sqerr to calculate the content loss
-    def calc_content_loss(self, sess, model, c_img, layer_ids):
+    def calc_content_loss(self, session, model, c_img, layer_ids):
         layers = model.get_layer_tensors(layer_ids)
         values = session.run(layers, feed_dict=feed_dict)
         with model.graph.as_default():
             layer_losses = []
             for value, layer in zip(values, layers):
                 value_const = tf.constant(value)
-                loss = mean_squared_error(layer, value_const)
+                loss = self.mean_sqerr(layer, value_const)
                 layer_losses.append(loss)
             total_loss = tf.reduce_mean(layer_losses)
         return total_loss
 
-    def calc_style_loss(self, sess, model, c_img, layer_ids):
+    def calc_style_loss(self, session, model, c_img, layer_ids):
         feed_dict = model.create_feed_dict(image=self.style_image)
         layers = model.get_layer_tensors(layer_ids)
         with model.graph.as_default():
-            gram_layers = [gram_matrix(layer) for layer in layers]
+            gram_layers = [self.gram_mat(layer) for layer in layers]
             values = session.run(gram_layers, feed_dict=feed_dict)
             layer_losses = []
             for value, gram_layer in zip(values, gram_layers):
                 value_const = tf.constant(value)
-                loss = mean_squared_error(layer, value_const)
+                loss = self.mean_sqerr(layer, value_const)
                 layer_losses.append(loss)
             total_loss = tf.reduce_mean(layer_losses)
         return total_loss
@@ -224,3 +224,8 @@ class OurModel():
         matrix = tf.reshape(tensor, shape=[-1, num_channels])
         # matrix = tf.reshape(tensor, shape=[-1, int(tensor.get_shape()[3])])
         return tf.matmul(tf.transpose(matrix), matrix)
+
+    def create_denoise_loss(self, model):
+        loss = tf.reduce_sum(tf.abs(model.input[:,1:,:,:] - model.input[:,:-1,:,:])) + \
+            tf.reduce_sum(tf.abs(model.input[:,:,1:,:] - model.input[:,:,:-1,:]))
+        return loss
