@@ -6,7 +6,6 @@
 # from tensorflow.python.training import optimizer
 from vgg16 import Vgg16
 import tensorflow as tf
-import hyperparameters as hp
 import PIL.Image
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -46,8 +45,8 @@ class OurModel():
         content_image = np.reshape(content_image, (int(h/30),int(w/30),3))
 
         #which one?
-        model = vgg.build(content_image)
-        # model = vgg16.VGG16()
+        # model = vgg.build(content_image)
+        model = vgg16.VGG16()
 
         #parameters
         weight_content=1.5
@@ -68,15 +67,15 @@ class OurModel():
 
         update_adj_content = adj_content.assign(1.0 / (loss_content + 1e-10))
         update_adj_style = adj_style.assign(1.0 / (loss_style + 1e-10))
-        update_adj_denoise = adj_denoise.assign(1.0 / (loss_denoise + 1e-10))
+        # update_adj_denoise = adj_denoise.assign(1.0 / (loss_denoise + 1e-10))
 
         loss_combined = weight_content * adj_content * loss_content + \
-                    weight_style * adj_style * loss_style + \
-                    weight_denoise * adj_denoise * loss_denoise
+                    weight_style * adj_style * loss_style #+ \
+                    #weight_denoise * adj_denoise * loss_denoise
 
         gradient = tf.gradients(loss_combined, model.input)
 
-        run_list = [gradient, update_adj_content, update_adj_style, update_adj_denoise]
+        run_list = [gradient, update_adj_content, update_adj_style]#, update_adj_denoise]
 
         # The mixed-image is initialized with random noise.
         # It is the same size as the content-image.
@@ -113,16 +112,30 @@ class OurModel():
             # Print adjustment weights for loss-functions.
             msg = "Weight Adj. for Content: {0:.2e}, Style: {1:.2e}, Denoise: {2:.2e}"
             print(msg.format(adj_content_val, adj_style_val, adj_denoise_val))
+<<<<<<< Updated upstream
 
             # Plot the content-, style- and mixed-images. 
             plot_images(content_image=content_image,
                         style_image=style_image,
                         mixed_image=mixed_image)
+=======
+            plt.figure()
+            plt.imshow(content_image=content_image)
+            plt.figure()
+            plt.imshow(style_image=style_image)
+            plt.figure()
+            plt.imshow(mixed_image=mixed_image)
+            # Plot the content-, style- and mixed-images. 
+            # plot_images(content_image=content_image,
+            #             style_image=style_image,
+            #             mixed_image=mixed_image)
+>>>>>>> Stashed changes
             
         print()
         print("Final image:")
-        plot_image_big(mixed_image)
-
+        # plot_image_big(mixed_image)
+        plt.figure()
+        plt.imshow(mixed_image)
         # Close the TensorFlow session to release its resources.
         session.close()
         
@@ -137,6 +150,7 @@ class OurModel():
 
     # use mean_sqerr to calculate the content loss
     def calc_content_loss(self, session, model, c_img, layer_ids):
+        feed_dict = model.create_feed_dict(image=style_image)
         layers = model.get_layer_tensors(layer_ids)
         values = session.run(layers, feed_dict=feed_dict)
         with model.graph.as_default():
@@ -157,7 +171,7 @@ class OurModel():
             layer_losses = []
             for value, gram_layer in zip(values, gram_layers):
                 value_const = tf.constant(value)
-                loss = self.mean_sqerr(layer, value_const)
+                loss = self.mean_sqerr(gram_layer, value_const)
                 layer_losses.append(loss)
             total_loss = tf.reduce_mean(layer_losses)
         return total_loss    
@@ -171,6 +185,7 @@ class OurModel():
         # matrix = tf.reshape(tensor, shape=[-1, int(tensor.get_shape()[3])]) 
         return tf.matmul(tf.transpose(matrix), matrix)
 
+    #to be used l8r
     def create_denoise_loss(self, model):
         loss = tf.reduce_sum(tf.abs(model.input[:,1:,:,:] - model.input[:,:-1,:,:])) + \
             tf.reduce_sum(tf.abs(model.input[:,:,1:,:] - model.input[:,:,:-1,:]))
