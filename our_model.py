@@ -6,7 +6,6 @@
 # from tensorflow.python.training import optimizer
 from vgg16 import Vgg16
 import tensorflow as tf
-import hyperparameters as hp
 import PIL.Image
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -26,61 +25,7 @@ class OurModel():
 
     print("created model")
 
-
-    # def _build_graph(self, inputs):
-    #     image, label = inputs
-    #     with argscope(Conv2D, kernel_shape=3, nl=tf.nn.relu):
-    #         logits = (LinearWrap(image)
-
-    #                     .Conv2D('conv1_1', 64)
-    #                     .Conv2D('conv1_2', 64)
-    #                     .MaxPooling('pool1', 2)
-    #                     # 112
-    #                     .Conv2D('conv2_1', 128)
-    #                     .Conv2D('conv2_2', 128)
-    #                     .MaxPooling('pool2', 2)
-    #                     # 56
-    #                     .Conv2D('conv3_1', 256)
-    #                     .Conv2D('conv3_2', 256)
-    #                     .Conv2D('conv3_3', 256)
-    #                     .MaxPooling('pool3', 2)
-    #                     # 28
-    #                     .Conv2D('conv4_1', 512)
-    #                     .Conv2D('conv4_2', 512)
-    #                     .Conv2D('conv4_3', 512)
-    #                     .MaxPooling('pool4', 2)
-    #                     .tf.stop_gradient()
-    #                     # 14
-    #                     .Conv2D('conv5_1', 512)
-    #                     .Conv2D('conv5_2', 512)
-    #                     .Conv2D('conv5_3', 512)
-
-    #                     .MaxPooling('pool5', 2)
-    #                     .Dropout()
-    #                     # 7
-    #                     .Dropout()
-    #                     .FullyConnected('fc6', 4096, nl=tf.nn.relu)
-    #                     .Dropout()
-    #                     .FullyConnected('fc7', 4096, nl=tf.nn.relu)
-    #                     .Dropout()
-    #                     .FullyConnected('fc8', out_dim=15, nl=tf.identity)()
-    #                     )
-
-    #         prob = tf.nn.softmax(logits, name='output')
-
-    #         cost = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=label)
-    #         cost = tf.reduce_mean(cost, name='cross_entropy_loss')
-
-    #         wrong = prediction_incorrect(logits, label)
-
-    #         # monitor training error
-    #         add_moving_summary(tf.reduce_mean(wrong, name='train_error'))
-
-    #         add_moving_summary(cost)
-
-    #         add_param_summary(('.*/W', ['histogram']))   # monitor W
-    #         self.cost = tf.add_n([cost], name='cost')
-
+ 
 
     def style_transfer(self, data):
         content_image = data[0]
@@ -100,8 +45,8 @@ class OurModel():
         content_image = np.reshape(content_image, (int(h/30),int(w/30),3))
 
         #which one?
-        model = vgg.build(content_image)
-        # model = vgg16.VGG16()
+        # model = vgg.build(content_image)
+        model = vgg16.VGG16()
 
         #parameters
         weight_content=1.5
@@ -122,15 +67,15 @@ class OurModel():
 
         update_adj_content = adj_content.assign(1.0 / (loss_content + 1e-10))
         update_adj_style = adj_style.assign(1.0 / (loss_style + 1e-10))
-        update_adj_denoise = adj_denoise.assign(1.0 / (loss_denoise + 1e-10))
+        # update_adj_denoise = adj_denoise.assign(1.0 / (loss_denoise + 1e-10))
 
         loss_combined = weight_content * adj_content * loss_content + \
-                    weight_style * adj_style * loss_style + \
-                    weight_denoise * adj_denoise * loss_denoise
+                    weight_style * adj_style * loss_style #+ \
+                    #weight_denoise * adj_denoise * loss_denoise
 
         gradient = tf.gradients(loss_combined, model.input)
 
-        run_list = [gradient, update_adj_content, update_adj_style, update_adj_denoise]
+        run_list = [gradient, update_adj_content, update_adj_style]#, update_adj_denoise]
 
         # The mixed-image is initialized with random noise.
         # It is the same size as the content-image.
@@ -167,16 +112,24 @@ class OurModel():
             # Print adjustment weights for loss-functions.
             msg = "Weight Adj. for Content: {0:.2e}, Style: {1:.2e}, Denoise: {2:.2e}"
             print(msg.format(adj_content_val, adj_style_val, adj_denoise_val))
-
+=======
+            plt.figure()
+            plt.imshow(content_image=content_image)
+            plt.figure()
+            plt.imshow(style_image=style_image)
+            plt.figure()
+            plt.imshow(mixed_image=mixed_image)
             # Plot the content-, style- and mixed-images.
-            plot_images(content_image=content_image,
-                        style_image=style_image,
-                        mixed_image=mixed_image)
+            # plot_images(content_image=content_image,
+            #             style_image=style_image,
+            #             mixed_image=mixed_image)
 
+>>>>>>> melo
         print()
         print("Final image:")
-        plot_image_big(mixed_image)
-
+        # plot_image_big(mixed_image)
+        plt.figure()
+        plt.imshow(mixed_image)
         # Close the TensorFlow session to release its resources.
         session.close()
 
@@ -191,6 +144,7 @@ class OurModel():
 
     # use mean_sqerr to calculate the content loss
     def calc_content_loss(self, session, model, c_img, layer_ids):
+        feed_dict = model.create_feed_dict(image=style_image)
         layers = model.get_layer_tensors(layer_ids)
         values = session.run(layers, feed_dict=feed_dict)
         with model.graph.as_default():
@@ -211,7 +165,7 @@ class OurModel():
             layer_losses = []
             for value, gram_layer in zip(values, gram_layers):
                 value_const = tf.constant(value)
-                loss = self.mean_sqerr(layer, value_const)
+                loss = self.mean_sqerr(gram_layer, value_const)
                 layer_losses.append(loss)
             total_loss = tf.reduce_mean(layer_losses)
         return total_loss
@@ -225,6 +179,7 @@ class OurModel():
         # matrix = tf.reshape(tensor, shape=[-1, int(tensor.get_shape()[3])])
         return tf.matmul(tf.transpose(matrix), matrix)
 
+    #to be used l8r
     def create_denoise_loss(self, model):
         loss = tf.reduce_sum(tf.abs(model.input[:,1:,:,:] - model.input[:,:-1,:,:])) + \
             tf.reduce_sum(tf.abs(model.input[:,:,1:,:] - model.input[:,:,:-1,:]))
