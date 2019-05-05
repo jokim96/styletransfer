@@ -22,32 +22,26 @@ import matplotlib.image as mpimg
 from keras.models import Model
 from numpy import random
 
-def deprocess_image(x):
-    """utility function to convert a float array into a valid uint8 image.
-    # Arguments
-        x: A numpy-array representing the generated image.
-    # Returns
-        A processed numpy-array, which could be used in e.g. imshow.
-    """
-    # normalize tensor: center on 0., ensure std is 0.25
-    x -= x.mean()
-    x /= (x.std() + K.epsilon())
-    x *= 0.25
+def deprocess_image(processed_img):
+  x = processed_img.copy()
+  if len(x.shape) == 4:
+    x = np.squeeze(x, 0)
+  assert len(x.shape) == 3, ("Input to deprocess image must be an image of "
+                             "dimension [1, height, width, channel] or [height, width, channel]")
+  if len(x.shape) != 3:
+    raise ValueError("Invalid input to deprocessing image")
+  
+  # perform the inverse of the preprocessiing step
+  x[:, :, 0] += 103.939
+  x[:, :, 1] += 116.779
+  x[:, :, 2] += 123.68
+  x = x[:, :, ::-1]
 
-    # clip to [0, 1]
-    x += 0.5
-    x = np.clip(x, 0, 1)
+  x = np.clip(x, 0, 255).astype('uint8')
+  return x
 
-    # convert to RGB array
-    x *= 255
-    if K.image_data_format() == 'channels_first':
-        x = x.transpose((1, 2, 0))
-    x = np.clip(x, 0, 255).astype('uint8')
-    return x
-
-
-def gram_mat(self, tensor):
-        matrix = tf.reshape(tensor, shape=[-1, tensor.get_shape()[3]])
+def gram_mat( tensor):
+        matrix = tf.reshape(tensor, shape=[-1, tensor.shape()[3]])
         # matrix = tf.reshape(tensor, shape=[-1, int(tensor.get_shape()[3])])
         return tf.matmul(tf.transpose(matrix), matrix)
 
@@ -116,13 +110,41 @@ for channel in range(style_features[0].shape[-1]):
     featureMap = style_features[3][:,:,:,channel]
     featureMap = deprocess_image(featureMap)[0]
 
+#calcualte gram matrices for all style layers in style features
+ma_grams =  [gram_mat(tensor) for tensor in style_features]
 
 #create the white noise image
-output_img = np.random.random([img_w, img_h])
-# plt.imshow(white_noise, cmap='gray', interpolation='nearest');
-# plt.show()
+noise = np.random.random([img_w, img_h])
+output_img = np.rezie(noise, (noise.shape[0], noise.shape[1], 3))
+plt.imshow(output_img, cmap='gray', interpolation='nearest')
+plt.show()
+
+print("yoo......")
 output_img = K.variable(output_img)
 optimizer = Adam(lr=5, beta_1=0.99, epsilon=1e-1)
+
+# initialize loss weights
+style_weight = 1e-2
+content_weight = 1e3
+
+best_loss = float('inf')
+best_img = None
+
+
+iterations = 100
+for i in iterations:
+        grads = compute_grad()
+        loss = compute_loss()
+        optimizer.apply_gradients([(grads, output_img)])
+        output_img = deprocess_image(output_img)
+
+        if loss < best_loss:
+                best_loss = loss
+                best_image = output_img
+                plt.imshow(best_img)
+                plt.show()
+
+        
 
 
 
