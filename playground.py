@@ -5,6 +5,11 @@ from helpers import load_image, save_image, my_imfilter
 import numpy as np
 from skimage.transform import rescale
 import tensorflow as tf
+from PIL import Image
+import numpy as np
+
+from pylab import imshow, show, get_cmap
+
 
 from keras import backend as K
 
@@ -14,6 +19,7 @@ from keras.applications.vgg16 import preprocess_input
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from keras.models import Model
+from numpy import random
 
 
 content_layer = 'block4_conv2'
@@ -26,14 +32,15 @@ i_style = image.img_to_array(i_style)
 i_style = np.expand_dims(i_style, axis=0)
 i_style = preprocess_input(i_style)
 
-content_path = 'images/ring.jpg'
+content_path = 'images/galata.jpg'
 i_content = image.load_img(content_path, target_size=(224,224))
 i_content= image.img_to_array(i_content)
 i_content = np.expand_dims(i_content, axis=0)
 i_content = preprocess_input(i_content)
 
-img_h = i_content.shape[0]
-img_w = i_content.shape[1]
+img_h = i_content.shape[1]
+img_w = i_content.shape[2]
+ 
 
 ph_content = K.variable(i_content)
 ph_style = K.variable(i_style)
@@ -81,10 +88,15 @@ def deprocess_image(x):
 for channel in range(style_features[0].shape[-1]): 
     featureMap = style_features[3][:,:,:,channel]
     featureMap = deprocess_image(featureMap)[0]
+ 
+print(i_content.shape)  
 
-    imgplot = plt.imshow(featureMap)
-    plt.show()
+#create the white noise image
+white_noise = np.random.random([img_w, img_h])
+plt.imshow(white_noise, cmap='gray', interpolation='nearest');
+plt.show()
 
+ph_whitenoise = K.variable(i_style)
 
 def gram_mat(self, tensor):
         matrix = tf.reshape(tensor, shape=[-1, tensor.get_shape()[3]])
