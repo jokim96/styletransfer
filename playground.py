@@ -89,20 +89,30 @@ for channel in range(style_features[0].shape[-1]):
     featureMap = style_features[3][:,:,:,channel]
     featureMap = deprocess_image(featureMap)[0]
  
-print(i_content.shape)  
 
-#create the white noise image
+
+#create the white noise image // Are we ever gonna need this?
 white_noise = np.random.random([img_w, img_h])
 plt.imshow(white_noise, cmap='gray', interpolation='nearest');
-plt.show()
+# plt.show()
+ph_whitenoise = K.variable(i_style) 
 
-ph_whitenoise = K.variable(i_style)
+print(len(style_features))
+print(type(style_features[1]))
+# print(style_features.len)
+print("YEET")
 
-def gram_mat(self, tensor):
-        matrix = tf.reshape(tensor, shape=[-1, tensor.get_shape()[3]])
-        # matrix = tf.reshape(tensor, shape=[-1, int(tensor.get_shape()[3])])
+def gram_mat(tensor):
+        print(tensor.shape) 
+        matrix = tf.reshape(tensor, shape=[-1, tensor.shape[3]]) 
         return tf.matmul(tf.transpose(matrix), matrix)
 
+#calcualte gram matrices for all style layers in style features
+ma_grams =  [gram_mat(tensor) for tensor in style_features]
+
+print("YEET again")
+#turns out, gram matrices is a list of 4 Tensors of respective channel sizes like (64,64)  
+print(ma_grams)
 
 def calc_content_loss(content, output):
         return tf.losses.mean_squared_error(content,output)
