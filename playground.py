@@ -21,6 +21,7 @@ import matplotlib.image as mpimg
 from keras.models import Model
 from numpy import random
 
+
 def calc_content_loss(content, output):
         return tf.losses.mean_squared_error(content,output)
 
@@ -147,19 +148,19 @@ max_vals = 255 - norm_means
 results = []
 
 def compute_grads(model, loss_weights, mixed_img, gram_mat, content_features):
-        with tf.GradientTape() as tape: 
-              all_loss = compute_gradients(model, loss_weights, mixed_img, gram_mat, content_features)
-  # Compute gradients wrt input image
-        total_loss = all_loss
-        cfg = {
-                'model': model,
-                'loss_weights': loss_weights,
-                'mixed_img': mixed_img,
-                'gram_style_features': gram_mat,
-                'content_features': content_features
-        } 
+#         with tf.GradientTape() as tape: 
+#               all_loss = compute_gradients(model, loss_weights, mixed_img, gram_mat, content_features)
+#   # Compute gradients wrt input image
+#         total_loss = all_loss
+#         cfg = {
+#                 'model': model,
+#                 'loss_weights': loss_weights,
+#                 'mixed_img': mixed_img,
+#                 'gram_style_features': gram_mat,
+#                 'content_features': content_features
+#         } 
 
-        return tape.gradient(total_loss, cfg['mixed_img']), total_loss
+#         return tape.gradient(total_loss, mixed_img), total_loss
 
 def get_style_loss(base_style, gram_target):
         """Expects two images of dimension h, w, c"""
@@ -212,7 +213,8 @@ loss_weights = (style_weight, content_weight)
 
 for i in range(1000):
         output_image = i_content
-        grads, all_loss = compute_grads(model, loss_weights, output_image, gram_mat, content_features)
+        # tf_variable = tfe.Variable(output_image, dtype=tf.float32)
+        grads, all_loss = compute_grads(model, loss_weights, tf_variable, gram_mat, content_features)
         loss, style_score, content_score = all_loss
         optimizer.apply_gradients([(grads, output_image)])
         clipped = tf.clip_by_value(output_image, min_vals, max_vals)
