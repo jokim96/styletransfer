@@ -1,18 +1,12 @@
 # for testing
-
-
 from helpers import load_image, save_image, my_imfilter
 import numpy as np
 from skimage.transform import rescale
 import tensorflow as tf
 from PIL import Image
 import numpy as np
-
 from pylab import imshow, show, get_cmap
-
-
 from keras import backend as K
-
 from keras.preprocessing import image
 from keras.applications.vgg16 import VGG16
 from keras.applications.vgg16 import preprocess_input
@@ -120,21 +114,25 @@ def get_style_loss(base_style, gram_target):
         print(gram_style.shape)
         return tf.reduce_mean(tf.square(gram_style - gram_target))# / (4. * (channels ** 2) * (width * height) ** 2)
 
-def compute_loss(model, loss_weights, mixed_img, gram_mat, content_features):
+def compute_loss(style_model, content_model, style_layers, loss_weights, mixed_img, gram_mat, content_features, style_features):
         #initialize losses
         style_loss = 0
         content_loss = 0 
         num_style_layers = len(style_features)
         #calulcate losses
         style_weights, content_weights = loss_weights
-        # model_outputs = content_model.predict(mixed_img)
-        # model_outputs = model
-        # style_output_features = model_outputs[:num_style_layers]
-        # content_output_features = model_outputs[num_style_layers:]
-        style_output_features = style_features
-        content_output_features = content_features
-        #sum style losses for all layers
 
+        # content for the mixed image
+        content_output_features = content_model.predict(mixed_img)
+
+        # style for the mixed image
+        style_output_features = []
+        for layer in style_layer:
+                style_model = Model(model.input, model.get_layer(layer).output)
+                style_output_features.append(style_model.predict(mixed_img))
+
+
+        #sum style losses for all layers
         weight_per_style_layer = 1.0 / float(num_style_layers)
         for target_style, comb_style in zip(ma_grams, style_output_features):
                 style_loss += weight_per_style_layer * get_style_loss(comb_style[0], target_style)
@@ -143,6 +141,8 @@ def compute_loss(model, loss_weights, mixed_img, gram_mat, content_features):
         weight_per_content_layer = 1.0 / float(len(content_features))
         for target_content, comb_content in zip(content_features, content_output_features):
                 content_loss += weight_per_content_layer* tf.reduce_mean(tf.square(comb_content[0] - target_content))
+
+
         print("style_loss")
         print(content_loss)
         print(content_weights)
@@ -168,7 +168,7 @@ num_iterations=1000,
 loss_weights = (style_weight, content_weight)
 
 for i in num_iterations:
-        loss = compute_loss(model, loss_weights, output_image, gram_mat, content_features)
+        loss = compute_loss(style_model, content_model, style_layer, loss_weights, output_image, gram_mat, content_features, style_features)
         grads = K.gradients(loss, output_image)
         optimizer.apply_gradients([(grads, output_image)])
         clipped = tf.clip_by_value(output_image, min_vals, max_vals)
