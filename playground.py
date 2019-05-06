@@ -20,12 +20,12 @@ def calc_content_loss(content, output):
         return tf.losses.mean_squared_error(content,output)
 
 def gram_mat(tensor):
-        print(tensor.shape) 
-        matrix = tf.reshape(tensor, shape=[-1, tensor.shape[-1]]) 
+        print(tensor.shape)
+        matrix = tf.reshape(tensor, shape=[-1, tensor.shape[-1]])
         return tf.matmul(tf.transpose(matrix), matrix)
 
 # def gram_matrix(input_tensor): #from the example
-#       # We make the image channels first 
+#       # We make the image channels first
 #         channels = int(input_tensor.shape[-1])
 #         a = tf.reshape(input_tensor, [-1, channels])
 #         n = tf.shape(a)[0]
@@ -59,8 +59,8 @@ def get_style_loss(base_style, gram_target):
         """Expects two images of dimension h, w, c"""
         # height, width, num filters of each layer
         # We scale the loss at a given layer by the size of the feature map and the number of filters
-        height, width, channels = base_style.shape 
-        gram_style = gram_mat(base_style) 
+        height, width, channels = base_style.shape
+        gram_style = gram_mat(base_style)
         return tf.reduce_mean(tf.square(gram_style - gram_target))# / (4. * (channels ** 2) * (width * height) ** 2)
 
 content_layer = 'block4_conv2'
@@ -75,7 +75,7 @@ i_style = preprocess_input(i_style)
 
 content_path = 'images/galata.jpg'
 i_content = image.load_img(content_path, target_size=(224,224))
-i_content= image.img_to_array(i_content) 
+i_content= image.img_to_array(i_content)
 i_content = np.expand_dims(i_content, axis=0)
 i_content = preprocess_input(i_content)
 
@@ -102,21 +102,21 @@ for layer in style_layer:
         style_model = Model(model.input, model.get_layer(layer).output)
         style_features.append(style_model.predict(i_style))
 # Visualization of the layer
-for channel in range(style_features[0].shape[-1]): 
+for channel in range(style_features[0].shape[-1]):
     featureMap = style_features[3][:,:,:,channel]
     featureMap = deprocess_image(featureMap)[0]
- 
+
 
 #create the white noise image // Are we ever gonna need this?
 output_image = np.random.random([img_w, img_h])
-plt.imshow(output_image, cmap='gray', interpolation='nearest')
-# plt.show() 
-ph_output_image = K.variable(i_style) 
-  
+plt.imshow(output_image, cmap='gray', interpolation='nearest');
+# plt.show()
+ph_output_image = K.variable(i_style)
+
 #calcualte gram matrices for all style layers in style features
 ma_grams =  [gram_mat(tensor) for tensor in style_features]
-#turns out, gram matrices is a list of 4 Tensors of respective channel sizes like (64,64)  
-print("YEET again") 
+#turns out, gram matrices is a list of 4 Tensors of respective channel sizes like (64,64)
+print("YEET again")
 
 #initialize optimizer
 optimizer = tf.train.AdamOptimizer(learning_rate=5, beta1=0.99, epsilon=1e-1)
@@ -125,15 +125,15 @@ content_weight=1e3
 style_weight=1e-2
 norm_means = np.array([103.939, 116.779, 123.68])
 min_vals = -norm_means
-max_vals = 255 - norm_means 
+max_vals = 255 - norm_means
 
 #array that contains the generated images
 results = []
 
-def compute_loss(style_model, content_model, style_layers, loss_weights, mixed_img, gram_mat, content_features, style_features):
+def compute_loss(model, loss_weights, mixed_img, gram_mat, content_features):
         #initialize losses
         style_loss = 0
-        content_loss = 0 
+        content_loss = 0
         num_style_layers = len(style_features)
         total_loss = 0
         #calulcate losses
@@ -153,13 +153,15 @@ def compute_loss(style_model, content_model, style_layers, loss_weights, mixed_i
         weight_per_style_layer = 1.0 / float(num_style_layers)
         for target_style, comb_style in zip(ma_grams, style_output_features):
                 style_loss += weight_per_style_layer * get_style_loss(comb_style[0], target_style)
-        
+
         #sum content losses for all layers
         weight_per_content_layer = 1.0 / float(len(content_features))
         for target_content, comb_content in zip(content_features, content_output_features):
                 content_loss += weight_per_content_layer* tf.reduce_mean(tf.square(comb_content[0] - target_content))
-                
+
         total_loss = style_loss*style_weights + content_loss*content_weights
+        print("total loss")
+        print(total_loss)
         return total_loss
 
 #calcualte gram matrices for all style layers in style features
@@ -173,7 +175,7 @@ content_weight=1e3
 style_weight=1e-2
 norm_means = np.array([103.939, 116.779, 123.68])
 min_vals = -norm_means
-max_vals = 255 - norm_means 
+max_vals = 255 - norm_means
 
 #array that contains the generated images
 results = []
@@ -187,10 +189,10 @@ combination_image = K.placeholder((1, 3, img_nrows, img_ncols))
 
 
 for i in range(1000):
-        output_image = i_content 
+        output_image = i_content
         loss = compute_loss(model, loss_weights, output_image, gram_mat, content_features)
         print(loss)
-        grads = K.gradients(loss, combination_image) 
+        grads = K.gradients(loss, combination_image)
         print("type(output_image)")
         print(type(output_image))
         print("grads")
@@ -213,7 +215,7 @@ for i in range(1000):
         clipped = tf.clip_by_value(output_image, min_vals, max_vals)
         output_image.assign(clipped)
         if loss < best_loss:
-          # Update best loss and best image from total loss. 
+          # Update best loss and best image from total loss.
                 best_loss = loss
                 best_img = deprocess_image(output_image.numpy())
 
