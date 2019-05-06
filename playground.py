@@ -60,10 +60,7 @@ def get_style_loss(base_style, gram_target):
         # height, width, num filters of each layer
         # We scale the loss at a given layer by the size of the feature map and the number of filters
         height, width, channels = base_style.shape 
-        gram_style = gram_mat(base_style)
-        print(base_style.shape)
-        print(gram_target.shape)
-        print(gram_style.shape)
+        gram_style = gram_mat(base_style) 
         return tf.reduce_mean(tf.square(gram_style - gram_target))# / (4. * (channels ** 2) * (width * height) ** 2)
 
 content_layer = 'block4_conv2'
@@ -115,9 +112,7 @@ output_image = np.random.random([img_w, img_h])
 plt.imshow(output_image, cmap='gray', interpolation='nearest');
 # plt.show() 
 ph_output_image = K.variable(i_style) 
- 
-print("YEET")
-
+  
 #calcualte gram matrices for all style layers in style features
 ma_grams =  [gram_mat(tensor) for tensor in style_features]
 #turns out, gram matrices is a list of 4 Tensors of respective channel sizes like (64,64)  
@@ -140,6 +135,7 @@ def compute_loss(model, loss_weights, mixed_img, gram_mat, content_features):
         style_loss = 0
         content_loss = 0 
         num_style_layers = len(style_features)
+        total_loss = 0
         #calulcate losses
         style_weights, content_weights = loss_weights
 
@@ -162,12 +158,8 @@ def compute_loss(model, loss_weights, mixed_img, gram_mat, content_features):
         weight_per_content_layer = 1.0 / float(len(content_features))
         for target_content, comb_content in zip(content_features, content_output_features):
                 content_loss += weight_per_content_layer* tf.reduce_mean(tf.square(comb_content[0] - target_content))
-
-
-        print("style_loss")
-        print(content_loss)
-        print(content_weights)
-        total_loss = style_loss*style_weights + content_loss*content_weights[0]
+                
+        total_loss = style_loss*style_weights + content_loss*content_weights
         return total_loss
 
 #calcualte gram matrices for all style layers in style features
@@ -188,11 +180,36 @@ results = []
 num_iterations=1000,
 loss_weights = (style_weight, content_weight)
 
+img_nrows = 400
+img_ncols = int(img_w * img_nrows / img_h)
+
+combination_image = K.placeholder((1, 3, img_nrows, img_ncols))
+
+
 for i in range(1000):
         output_image = i_content 
         loss = compute_loss(model, loss_weights, output_image, gram_mat, content_features)
-        grads = K.gradients(loss, ph_output_image)
-        optimizer.apply_gradients([(grads, output_image)])
+        print(loss)
+        grads = K.gradients(loss, combination_image) 
+        print("type(output_image)")
+        print(type(output_image))
+        print("grads")
+        print(grads)
+        print(type(grads[0]))
+
+        outputs = [loss]
+        if isinstance(grads, (list, tuple)):
+                outputs += grads
+        else:
+                outputs.append(grads)
+
+        print("type(grads)")
+        print(type([combination_image][0]))
+        print(outputs)
+        # break
+        f_outputs = K.function([combination_image], outputs)
+
+        # optimizer.apply_gradients([(grads, output_image)])
         clipped = tf.clip_by_value(output_image, min_vals, max_vals)
         output_image.assign(clipped)
         if loss < best_loss:
