@@ -1,8 +1,4 @@
 # for testing
-<<<<<<< HEAD
-
-=======
->>>>>>> d0cfa555822173a826d0fcf2a00ad2b362f50bd0
 from helpers import load_image, save_image, my_imfilter
 import numpy as np
 from skimage.transform import rescale
@@ -23,16 +19,11 @@ from numpy import random
 def calc_content_loss(content, output):
         return tf.losses.mean_squared_error(content,output)
 
-<<<<<<< HEAD
-=======
- 
->>>>>>> d0cfa555822173a826d0fcf2a00ad2b362f50bd0
 def gram_mat(tensor):
         print(tensor.shape) 
         matrix = tf.reshape(tensor, shape=[-1, tensor.shape[-1]]) 
         return tf.matmul(tf.transpose(matrix), matrix)
 
-<<<<<<< HEAD
 # def gram_matrix(input_tensor): #from the example
 #       # We make the image channels first 
 #         channels = int(input_tensor.shape[-1])
@@ -41,8 +32,6 @@ def gram_mat(tensor):
 #         gram = tf.matmul(a, a, transpose_a=True)
 #         return gram / tf.cast(n, tf.float32)
 
-=======
->>>>>>> d0cfa555822173a826d0fcf2a00ad2b362f50bd0
 def deprocess_image(x):
     """utility function to convert a float array into a valid uint8 image.
     # Arguments
@@ -89,29 +78,12 @@ i_style = preprocess_input(i_style)
 
 content_path = 'images/galata.jpg'
 i_content = image.load_img(content_path, target_size=(224,224))
-<<<<<<< HEAD
 i_content= image.img_to_array(i_content) 
-=======
-i_content= image.img_to_array(i_content)
->>>>>>> d0cfa555822173a826d0fcf2a00ad2b362f50bd0
 i_content = np.expand_dims(i_content, axis=0)
 i_content = preprocess_input(i_content)
 
 img_h = i_content.shape[1]
 img_w = i_content.shape[2]
-<<<<<<< HEAD
-=======
-
-# create the white noise image
-output_image = np.random.random([img_w, img_h])
-plt.imshow(output_image, cmap='gray', interpolation='nearest')
-n_channels = 3
-output_image = np.resize(output_image, (img_h, img_w, n_channels))
-output_image = image.img_to_array(output_image)
-output_image = np.expand_dims(output_image, axis=0)
-output_image = preprocess_input(output_image)
- 
->>>>>>> d0cfa555822173a826d0fcf2a00ad2b362f50bd0
 
 
 
@@ -132,18 +104,12 @@ style_features = []
 for layer in style_layer:
         style_model = Model(model.input, model.get_layer(layer).output)
         style_features.append(style_model.predict(i_style))
-<<<<<<< HEAD
-
-=======
-   
->>>>>>> d0cfa555822173a826d0fcf2a00ad2b362f50bd0
 # Visualization of the layer
 for channel in range(style_features[0].shape[-1]): 
     featureMap = style_features[3][:,:,:,channel]
     featureMap = deprocess_image(featureMap)[0]
  
 
-<<<<<<< HEAD
 #create the white noise image // Are we ever gonna need this?
 output_image = np.random.random([img_w, img_h])
 plt.imshow(output_image, cmap='gray', interpolation='nearest');
@@ -170,20 +136,6 @@ max_vals = 255 - norm_means
 results = []
 
 def compute_loss(model, loss_weights, mixed_img, gram_mat, content_features):
-=======
-def get_style_loss(base_style, gram_target):
-        """Expects two images of dimension h, w, c"""
-        # height, width, num filters of each layer
-        # We scale the loss at a given layer by the size of the feature map and the number of filters
-        height, width, channels = base_style.shape 
-        gram_style = gram_mat(base_style)
-        print(base_style.shape)
-        print(gram_target.shape)
-        print(gram_style.shape)
-        return tf.reduce_mean(tf.square(gram_style - gram_target))# / (4. * (channels ** 2) * (width * height) ** 2)
-
-def compute_loss(style_model, content_model, style_layers, loss_weights, mixed_img, gram_mat, content_features, style_features):
->>>>>>> d0cfa555822173a826d0fcf2a00ad2b362f50bd0
         #initialize losses
         style_loss = 0
         content_loss = 0 
@@ -236,16 +188,10 @@ results = []
 num_iterations=1000,
 loss_weights = (style_weight, content_weight)
 
-<<<<<<< HEAD
 for i in range(1000):
         output_image = i_content 
         loss = compute_loss(model, loss_weights, output_image, gram_mat, content_features)
         grads = K.gradients(loss, ph_output_image)
-=======
-for i in num_iterations:
-        loss = compute_loss(style_model, content_model, style_layer, loss_weights, output_image, gram_mat, content_features, style_features)
-        grads = K.gradients(loss, output_image)
->>>>>>> d0cfa555822173a826d0fcf2a00ad2b362f50bd0
         optimizer.apply_gradients([(grads, output_image)])
         clipped = tf.clip_by_value(output_image, min_vals, max_vals)
         output_image.assign(clipped)
