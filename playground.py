@@ -109,7 +109,7 @@ for channel in range(style_features[0].shape[-1]):
 
 #create the white noise image // Are we ever gonna need this?
 output_image = np.random.random([img_w, img_h])
-plt.imshow(output_image, cmap='gray', interpolation='nearest');
+plt.imshow(output_image, cmap='gray', interpolation='nearest')
 # plt.show() 
 ph_output_image = K.variable(i_style) 
   
@@ -130,7 +130,7 @@ max_vals = 255 - norm_means
 #array that contains the generated images
 results = []
 
-def compute_loss(model, loss_weights, mixed_img, gram_mat, content_features):
+def compute_loss(style_model, content_model, style_layers, loss_weights, mixed_img, gram_mat, content_features, style_features):
         #initialize losses
         style_loss = 0
         content_loss = 0 
