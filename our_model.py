@@ -1,186 +1,171 @@
-
-# from tensorpack import *
-# from tensorpack.tfutils.symbolic_functions import *
-# from tensorpack.tfutils.summary import *
-# from tensorpack.tfutils.tower import get_current_tower_context
-# from tensorflow.python.training import optimizer
-from vgg16 import Vgg16
-import tensorflow as tf
-import PIL.Image
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
 import numpy as np
 from skimage.transform import rescale
-from helpers import load_image, save_image, my_imfilter
+import tensorflow as tf
 from PIL import Image
-import cv2
+import numpy as np
+from pylab import imshow, show, get_cmap
+from keras import backend as K
+from keras.preprocessing import image
+from keras.applications.vgg16 import VGG16
+from keras.applications.vgg19 import VGG19      
+from skimage.exposure import adjust_gamma
+from keras.applications.vgg19 import preprocess_input
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+from keras.models import Model
+from numpy import random
+import time
+from scipy.optimize import fmin_l_bfgs_b
+from scipy import ndimage
+import os
+import errno
+from datetime import datetime
 
-print("in OurModel")
-class OurModel():
+# activate gpu/cpu
+ #source /course/cs1430/tf_gpu/bin/activate
+ # to clear up memory
+ #kill $(jobs -p)
 
-    def __init__(self):
-        super(OurModel, self).__init__()
-        self.use_bias = True
-
-
-    print("created model")
-
- 
-
-    def style_transfer(self, data):
-        content_image = data[0]
-        orgstyle_image = data[0]
-        style_image = data[1]
-        weight_content=1.5
-        weight_style=10.0
-        weight_denoise=0.3
-        num_iterations=120
-        step_size=10.0
-
-
-
-        content_layer_ids = [4]
-        vgg = Vgg16()
-        (h,w,d) = content_image.shape
-        content_image = np.reshape(content_image, (int(h/30),int(w/30),3))
-
-        #which one?
-        # model = vgg.build(content_image)
-        model = vgg16.VGG16()
-
-        #parameters
-        weight_content=1.5
-        weight_style=10.0
-        weight_denoise=0.3
-        num_iterations=120
-        step_size=10.0
-
-        # sess = tf.Session(graph = model)
-        session = tf.InteractiveSession(graph=model.graph)
-        loss_content = self.calc_content_loss(session=session, model=model, content_image=content_image, layer_ids=content_layer_ids)
-        loss_style = self.calc_style_loss(session=session, model=model, content_image=content_image, layer_ids=content_layer_ids)
-
-        adj_content = tf.Variable(1e-10, name='adj_content')
-        adj_style = tf.Variable(1e-10, name='adj_style')
-        adj_denoise = tf.Variable(1e-10, name='adj_denoise')
-        session.run([adj_content.initializer, adj_style.initializer, adj_denoise.initializer])
-
-        update_adj_content = adj_content.assign(1.0 / (loss_content + 1e-10))
-        update_adj_style = adj_style.assign(1.0 / (loss_style + 1e-10))
-        # update_adj_denoise = adj_denoise.assign(1.0 / (loss_denoise + 1e-10))
-
-        loss_combined = weight_content * adj_content * loss_content + \
-                    weight_style * adj_style * loss_style #+ \
-                    #weight_denoise * adj_denoise * loss_denoise
-
-        gradient = tf.gradients(loss_combined, model.input)
-
-        run_list = [gradient, update_adj_content, update_adj_style]#, update_adj_denoise]
-
-        # The mixed-image is initialized with random noise.
-        # It is the same size as the content-image.
-        mixed_image = np.random.rand(*content_image.shape) + 128
-
-        for i in range(num_iterations):
-            # Create a feed-dict with the mixed-image.
-            feed_dict = model.create_feed_dict(image=mixed_image)
-
-            # Use TensorFlow to calculate the value of the
-            # gradient, as well as updating the adjustment values.
-            grad, adj_content_val, adj_style_val, adj_denoise_val \
-            = session.run(run_list, feed_dict=feed_dict)
-
-            # Reduce the dimensionality of the gradient.
-            grad = np.squeeze(grad)
-
-            # Scale the step-size according to the gradient-values.
-            step_size_scaled = step_size / (np.std(grad) + 1e-8)
-
-            # Update the image by following the gradient.
-            mixed_image -= grad * step_size_scaled
-
-            # Ensure the image has valid pixel-values between 0 and 255.
-            mixed_image = np.clip(mixed_image, 0.0, 255.0)
-
-            # Print a little progress-indicator.
-            print(". ", end="")
-                    # Display status once every 10 iterations, and the last.
-        if (i % 10 == 0) or (i == num_iterations - 1):
-            print()
-            print("Iteration:", i)
-
-            # Print adjustment weights for loss-functions.
-            msg = "Weight Adj. for Content: {0:.2e}, Style: {1:.2e}, Denoise: {2:.2e}"
-            print(msg.format(adj_content_val, adj_style_val, adj_denoise_val))
-=======
-            plt.figure()
-            plt.imshow(content_image=content_image)
-            plt.figure()
-            plt.imshow(style_image=style_image)
-            plt.figure()
-            plt.imshow(mixed_image=mixed_image)
-            # Plot the content-, style- and mixed-images.
-            # plot_images(content_image=content_image,
-            #             style_image=style_image,
-            #             mixed_image=mixed_image)
-
->>>>>>> melo
-        print()
-        print("Final image:")
-        # plot_image_big(mixed_image)
-        plt.figure()
-        plt.imshow(mixed_image)
-        # Close the TensorFlow session to release its resources.
-        session.close()
-
-        # Return the mixed-image.
-        return mixed_image
-
-
-    # Loss function calculated through mean squared error between the
-    # content/style image and output image
-    def mean_sqerr(self, tensor_a, tensor_b):
-        return tf.reduce_mean(tf.square(tensor_a-tensor_b))
-
-    # use mean_sqerr to calculate the content loss
-    def calc_content_loss(self, session, model, c_img, layer_ids):
-        feed_dict = model.create_feed_dict(image=style_image)
-        layers = model.get_layer_tensors(layer_ids)
-        values = session.run(layers, feed_dict=feed_dict)
-        with model.graph.as_default():
-            layer_losses = []
-            for value, layer in zip(values, layers):
-                value_const = tf.constant(value)
-                loss = self.mean_sqerr(layer, value_const)
-                layer_losses.append(loss)
-            total_loss = tf.reduce_mean(layer_losses)
-        return total_loss
-
-    def calc_style_loss(self, session, model, c_img, layer_ids):
-        feed_dict = model.create_feed_dict(image=self.style_image)
-        layers = model.get_layer_tensors(layer_ids)
-        with model.graph.as_default():
-            gram_layers = [self.gram_mat(layer) for layer in layers]
-            values = session.run(gram_layers, feed_dict=feed_dict)
-            layer_losses = []
-            for value, gram_layer in zip(values, gram_layers):
-                value_const = tf.constant(value)
-                loss = self.mean_sqerr(gram_layer, value_const)
-                layer_losses.append(loss)
-            total_loss = tf.reduce_mean(layer_losses)
-        return total_loss
-
-    # gram matrix for style loss. Multiply matrix by its a transpose
-    # Gram matrix is used to calculate loss
-    def gram_mat(self, tensor):
-        shape = tensor.get_shape()
-        num_channels = int(shape[3])
-        matrix = tf.reshape(tensor, shape=[-1, num_channels])
-        # matrix = tf.reshape(tensor, shape=[-1, int(tensor.get_shape()[3])])
+def gram_mat(tensor):
+        matrix = tf.reshape(tensor, shape=[-1, tensor.shape[-1]])
         return tf.matmul(tf.transpose(matrix), matrix)
 
-    #to be used l8r
-    def create_denoise_loss(self, model):
-        loss = tf.reduce_sum(tf.abs(model.input[:,1:,:,:] - model.input[:,:-1,:,:])) + \
-            tf.reduce_sum(tf.abs(model.input[:,:,1:,:] - model.input[:,:,:-1,:]))
-        return loss
+def deprocess_image(x, img_h, img_w):
+    x = x.copy().reshape((img_h, img_w, 3))  
+    x[:, :, 0] += 103.939
+    x[:, :, 1] += 116.779
+    x[:, :, 2] += 123.68
+    x = x[:, :, ::-1]
+    x = np.clip(x, 0, 255).astype('uint8')
+    return x
+
+def load_data(img_path, target_size=(336,336)): 
+        img = image.load_img(img_path, target_size=target_size, interpolation ="bicubic")
+        img = image.img_to_array(img)
+        img = np.expand_dims(img, axis=0)
+        img = preprocess_input(img)
+        return img
+
+def calc_style_loss(base_style, output):
+        """Expects two images of dimension h, w, c"""
+        # height, width, num filters of each layer
+        # We scale the loss at a given layer by the size of the feature map and the number of filters
+        gram_style = gram_mat(base_style)
+        gram_output = gram_mat(output)
+        style_loss =  tf.reduce_mean(tf.square(gram_style - gram_output))
+        return style_loss
+
+def calc_content_loss(content, output):
+        content_loss = tf.reduce_mean(tf.square(content- output))
+        return content_loss
+
+# Initialize gloabal variables
+POS_CONTENT, POS_STYLE, POS_COMBINED = (0, 1, 2) 
+content_layer = ['block4_conv2'] 
+style_layer = ['block1_conv1', 'block2_conv1', 'block3_conv1', 'block4_conv1', 'block5_conv1']
+num_iterations=100 
+results = []
+#parameters for style and content, later used for saving
+style = 'kandinsky'
+content = 'galata'
+style_path = 'images/' + style + '.jpg'
+content_path = 'images/' + content + '.jpg'
+i_style = load_data(style_path) 
+i_content = load_data(content_path)
+img_h = i_content.shape[1]
+img_w = i_content.shape[2]
+i_combined = K.placeholder((1, img_h, img_w, 3))
+ 
+combined_tensor = K.concatenate([i_content, i_style, i_combined], axis=0)
+
+# Initialize VGG-19 Model using Keras 
+model = VGG19(input_tensor=combined_tensor, weights='imagenet', include_top=False)
+ 
+content_weight =  1.0
+style_weight= 0.5
+
+def calc_loss(model, combined_image):
+        layer_outputs = dict([layer.name, layer.output] for layer in model.layers)
+        style_loss = K.variable(0.0); content_loss = K.variable(0.0) 
+        # calculate content loss
+        for layer in content_layer: 
+                content_features = layer_outputs[layer][POS_CONTENT]
+                combined_features = layer_outputs[layer][POS_COMBINED]
+                content_loss = content_loss + calc_content_loss(content_features, combined_features)
+
+        # calculate style loss
+        for layer in style_layer:
+                print('layer: ', layer) 
+                style_features = layer_outputs[layer][POS_STYLE]
+                combined_features = layer_outputs[layer][POS_COMBINED]
+                style_loss =  style_loss +calc_style_loss(style_features, combined_features)
+        #simpler calc
+        total_loss = content_weight * content_loss + style_weight * style_loss 
+
+        return total_loss
+
+total_loss = calc_loss(model, i_combined)
+#use gradient
+gradients = K.gradients(total_loss, i_combined)[0]
+kfunc = K.function([i_combined], [total_loss, gradients])
+
+class Evaluator(object):
+    
+    def __init__(self):
+        self.loss_value = None
+        self.grads_values = None
+    
+    def loss(self, x):
+        assert self.loss_value is None
+        x = x.reshape((1, img_h, img_w, 3))
+        outs = kfunc([x])
+        loss_value = outs[0]
+        grad_values = outs[1].flatten().astype('float64') 
+        self.loss_value = loss_value
+        self.grad_values = grad_values
+        return self.loss_value
+
+    def grads(self, x):
+        assert self.loss_value is not None
+        grad_values = np.copy(self.grad_values)
+        self.loss_value = None
+        self.grad_values = None
+        return grad_values
+evaluator = Evaluator()
+
+
+min_loss = float('inf')
+best_i_combined = None
+x = load_data(content_path)
+
+# experiment with white noise image
+# x = np.random.uniform(0, 255, (1, img_h, img_w, 3)) - 128.
+
+x = x.flatten()
+for i in range(num_iterations):
+        mf = 20
+        start_time = time.time()
+        x, min_val, info = fmin_l_bfgs_b(evaluator.loss,
+                                        x,
+                                        fprime=evaluator.grads,
+                                        maxfun= mf)
+        print('Loxx:', min_val)
+
+        #### OUR STUPID MISTAKE HERE #####
+        # x = deprocess_image(x, img_h, img_w)
+        ##################################
+        img = deprocess_image(x, img_h, img_w)
+        
+        #used a median filter to reduce noise
+        img = ndimage.median_filter(img, 3) 
+
+     
+        file = 'images/at%d,(%f,%f,%d).png' % (i,content_weight,style_weight, mf)
+        end_time = time.time()
+        print('This iteration %d completed in %ds' % (i, end_time - start_time))
+        filename = "images/%s,%s(%f,%f,%d)/at%d.png" % (content,style,content_weight,style_weight, mf, i)
+        #create a new folder for each run style-content pair
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        image.save_img(filename, img)
+        print("image saved as", filename)
+      
